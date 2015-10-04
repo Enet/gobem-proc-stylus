@@ -13,7 +13,7 @@ module.exports = function () {
 
     return {
         before: function (next, input, output, args) {
-            client = client.createClient();
+            client = redis.createClient();
             client.expire('stylus', 86400);
             common = {};
             if (args[1]) {
