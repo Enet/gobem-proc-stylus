@@ -1,0 +1,36 @@
+{
+    "name": "gobem-proc-stylus",
+    "version": "0.0.1",
+    "description": "Processor to compile Stylus files into CSS for gobem builder.",
+    "main": "index.js",
+    "dependencies": {
+        "stylus": "*",
+        "redis": "*",
+        "nib": "*",
+        "async": "*"
+    },
+    "peerDependencies": {
+        "gobem": "*"
+    },
+    "keywords": [
+        "gobem",
+        "processor",
+        "preprocessor",
+        "stylus",
+        "css",
+        "style"
+    ],
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": {
+        "name": "Stepan Zhevak",
+        "email": "enet@protonmail.ch",
+        "url": "zhevak.name"
+    },
+    "repository": "https://github.com/Enet/gobem-proc-stylus",
+    "license": "GPLv3",
+    "engines": {
+        "node": ">=4.0.0"
+    }
+}
