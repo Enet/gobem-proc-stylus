@@ -5,7 +5,7 @@ let path = require('path'),
     async = require('async'),
     redis = require('redis'),
     stylus = require('stylus'),
-    nib = require('nib')();
+    nib = require('nib');
 
 module.exports = function () {
     let client,
@@ -22,8 +22,8 @@ module.exports = function () {
                     commonDir = path.join(args.config.rootDir, path.dirname(args[1]));
                 async.each(args.config.buildLangs, (langName, langNext) => {
                     let filePath = path.join(commonDir, commonFileName + (langName ? `:${langName}` : ``) + commonFileExt);
-                    fs.access(filePath, fs.R_OK, error => {
-                        if (!error) common[langName] = filePath;
+                    fs.readFile(filePath, 'utf-8', (error, fileContent) => {
+                        common[langName] = error ? '' : fileContent;
                         langNext();
                     });
                 }, next);
@@ -36,14 +36,15 @@ module.exports = function () {
             if (!fileContent) return next();
 
             let fileLangName = (path.basename(filePath).match(/:(\w+)$/) || {})[1];
-            if (common[fileLangName]) fileContent = `@import '${common[fileLangName]}';\n${fileContent}`;
-            if (common['']) fileContent = `@import '${common['']}';\n${fileContent}`;
+            fileContent = `@import 'nib';\n${fileContent}`;
+            if (common[fileLangName]) fileContent = `${common[fileLangName]}\n${fileContent}`;
+            if (common['']) fileContent = `${common['']}\n${fileContent}`;
 
             client.hget('stylus', fileContent, function (error, reply) {
                 if (reply === null) {
                     stylus(fileContent)
                         .set('filename', filePath)
-                        .use(nib)
+                        .use(nib())
                         .render(function(error, css) {
                             if (error) return next(error);
 
@@ -59,7 +60,7 @@ module.exports = function () {
             });
         },
 
-        after: function (next) {
+        clear: function (next) {
             client.end();
             next();
         }
