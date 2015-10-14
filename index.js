@@ -18,7 +18,7 @@ module.exports = function () {
         before: function (next, input, output, args) {
             let noNibArgIndex = args.indexOf('no-nib');
             nibContent = ~noNibArgIndex ? `` : `@import 'nib';\n`;
-            commonPath = args[noNibArgIndex ? 0 : 1];
+            commonPath = args[noNibArgIndex === 1 ? 2 : 1];
 
             client = redis.createClient();
             client.expire('stylus', 86400);
