@@ -1,6 +1,6 @@
 {
     "name": "gobem-proc-stylus",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "Processor to compile Stylus files into CSS for gobem builder.",
     "main": "index.js",
     "dependencies": {

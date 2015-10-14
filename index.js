@@ -9,21 +9,28 @@ let path = require('path'),
 
 module.exports = function () {
     let client,
-        common;
+        key = 'stylus',
+        commonPath,
+        commonContent,
+        nibContent;
 
     return {
         before: function (next, input, output, args) {
+            let noNibArgIndex = args.indexOf('no-nib');
+            nibContent = ~noNibArgIndex ? `` : `@import 'nib';\n`;
+            commonPath = args[noNibArgIndex ? 0 : 1];
+
             client = redis.createClient();
             client.expire('stylus', 86400);
-            common = {};
-            if (args[1]) {
-                let commonFileExt = path.extname(args[1]) || '.styl',
-                    commonFileName = path.basename(args[1], commonFileExt),
-                    commonDir = path.join(args.config.rootDir, path.dirname(args[1]));
+            commonContent = {};
+            if (commonPath) {
+                let commonFileExt = path.extname(commonPath) || '.styl',
+                    commonFileName = path.basename(commonPath, commonFileExt),
+                    commonDir = path.join(args.config.rootDir, path.dirname(commonPath));
                 async.each(args.config.buildLangs, (langName, langNext) => {
-                    let filePath = path.join(commonDir, commonFileName + (langName ? `:${langName}` : ``) + commonFileExt);
-                    fs.readFile(filePath, 'utf-8', (error, fileContent) => {
-                        common[langName] = error ? '' : fileContent;
+                    let commonFilePath = path.join(commonDir, commonFileName + (langName ? `:${langName}` : ``) + commonFileExt);
+                    fs.readFile(commonFilePath, 'utf-8', (error, fileContent) => {
+                        commonContent[langName] = error ? '' : fileContent + '\n';
                         langNext();
                     });
                 }, next);
@@ -36,15 +43,15 @@ module.exports = function () {
             if (!fileContent) return next();
 
             let fileLangName = (path.basename(filePath).match(/:(\w+)$/) || {})[1];
-            fileContent = `@import 'nib';\n${fileContent}`;
-            if (common[fileLangName]) fileContent = `${common[fileLangName]}\n${fileContent}`;
-            if (common['']) fileContent = `${common['']}\n${fileContent}`;
+            if (commonContent[fileLangName]) fileContent = commonContent[fileLangName] + fileContent;
+            if (commonContent['']) fileContent = commonContent[''] + fileContent;
+            fileContent = nibContent + fileContent;
 
             client.hget('stylus', fileContent, function (error, reply) {
                 if (reply === null) {
                     stylus(fileContent)
                         .set('filename', filePath)
-                        .use(nib())
+                        .use(nibContent ? nib() : null)
                         .render(function(error, css) {
                             if (error) return next(error);
 
