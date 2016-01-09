@@ -39,7 +39,6 @@ module.exports = function (options) {
 
         process: function (next, input, output, config, fileContent, filePath) {
             if (!fileContent) return next();
-
             let fileLangName = (path.basename(filePath).match(/:(\w+)$/) || {})[1];
             if (commonContent[fileLangName]) fileContent = commonContent[fileLangName] + fileContent;
             if (commonContent['']) fileContent = commonContent[''] + fileContent;
@@ -66,7 +65,7 @@ module.exports = function (options) {
         },
 
         clear: function (next) {
-            options.redisClient && client.end();
+            !options.redisClient && client.quit();
             next();
         }
     };
