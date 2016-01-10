@@ -3,24 +3,19 @@
 let path = require('path'),
     fs = require('fs'),
     async = require('async'),
-    redis = require('redis'),
+    xxhash = require('xxhash'),
     stylus = require('stylus'),
     nib = require('nib');
 
 module.exports = function (options) {
     options = options || {};
 
-    let client = options.redisClient,
-        key = options.redisKey || 'gobem-proc-stylus',
-        commonPath = options.commonStylus,
+    let commonPath = options.commonStylus,
         commonContent = {},
         nibContent = options.noNib ? `` : `@import 'nib';\n`;
 
     return {
         before: function (next, input, output, config) {
-            client = client || redis.createClient(options.redisOptions);
-            client.expire(key, 86400);
-
             if (commonPath) {
                 let commonFileExt = path.extname(commonPath) || '.styl',
                     commonFileName = path.basename(commonPath, commonFileExt),
@@ -37,36 +32,32 @@ module.exports = function (options) {
             }
         },
 
-        process: function (next, input, output, config, fileContent, filePath) {
-            if (!fileContent) return next();
-            let fileLangName = (path.basename(filePath).match(/:(\w+)$/) || {})[1];
-            if (commonContent[fileLangName]) fileContent = commonContent[fileLangName] + fileContent;
-            if (commonContent['']) fileContent = commonContent[''] + fileContent;
-            fileContent = nibContent + fileContent;
+        process: function (next, input, output, config, rawContent, rawPath) {
+            if (!rawContent) return next();
+            let fileLangName = (path.basename(rawPath).match(/:(\w+)$/) || {})[1];
+            if (commonContent[fileLangName]) rawContent = commonContent[fileLangName] + rawContent;
+            if (commonContent['']) rawContent = commonContent[''] + rawContent;
+            rawContent = nibContent + rawContent;
 
-            client.hget(key, fileContent, function (error, reply) {
-                if (reply === null) {
-                    stylus(fileContent)
-                        .set('filename', filePath)
+            let key = xxhash.hash(new Buffer(rawContent), 0xCAFEBABE) + '',
+                filePath = path.join(options.cacheDir + '', 'gobem-proc-stylus^' + key);
+
+            fs.readFile(filePath, 'utf8', (error, fileContent) => {
+                if (error) {
+                    stylus(rawContent)
+                        .set('filename', rawPath)
                         .use(nibContent ? nib() : null)
-                        .render(function(error, css) {
+                        .render(function (error, css) {
                             if (error) return next(error);
 
-                            client.hset(key, fileContent, css, function (error, reply) {
-                                output.set(filePath + '.css', css);
-                                next(error);
-                            });
+                            output.set(rawPath + '.css', css);
+                            fs.writeFile(filePath, css, next);
                         });
                 } else {
-                    output.set(filePath + '.css', reply);
+                    output.set(rawPath + '.css', fileContent);
                     next();
                 }
             });
-        },
-
-        clear: function (next) {
-            !options.redisClient && client.quit();
-            next();
         }
     };
 };
