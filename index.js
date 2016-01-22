@@ -3,7 +3,7 @@
 let path = require('path'),
     fs = require('fs'),
     async = require('async'),
-    xxhash = require('xxhash'),
+    xxhash = global[Symbol.for('xxhash')] = global[Symbol.for('xxhash')] || require('xxhash'),
     stylus = require('stylus'),
     nib = require('nib');
 
