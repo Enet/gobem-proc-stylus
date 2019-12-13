@@ -3,7 +3,7 @@
 let path = require('path'),
     fs = require('fs'),
     async = require('async'),
-    xxhash = global[Symbol.for('xxhash')] = global[Symbol.for('xxhash')] || require('xxhash'),
+    crypto = require('crypto'),
     stylus = require('stylus'),
     nib = require('nib');
 
@@ -39,7 +39,7 @@ module.exports = function (options) {
             if (commonContent['']) rawContent = commonContent[''] + rawContent;
             rawContent = nibContent + rawContent;
 
-            let key = xxhash.hash(new Buffer(rawContent), 0xCAFEBABE) + '',
+            let key = crypto.createHash('md5').update(rawContent).digest('hex'),
                 filePath = path.join(options.cacheDir + '', 'gobem-proc-stylus^' + key);
 
             fs.readFile(filePath, 'utf8', (error, fileContent) => {
